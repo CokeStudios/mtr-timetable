@@ -137,7 +137,7 @@ def get_close_matches(words, possibilities, cutoff=0.2):
         最相似的匹配项的ID
     '''
     # 初始化结果列表，包含一个默认值(-1, None)
-    result = [(-1, None)]
+    result: list[tuple[float, str | None]] = [(-1.0, None)]
     s = SequenceMatcher()  # 创建SequenceMatcher实例用于计算字符串相似度
     
     # 遍历每个要匹配的单词
@@ -162,7 +162,7 @@ def get_close_matches(words, possibilities, cutoff=0.2):
 
 
 def station_name_to_id(data: dict, sta: str,
-                       fuzzy_compare=True) -> str:
+                       fuzzy_compare=True) -> str | None:
     '''
     将车站名称转换为车站ID
     
@@ -212,7 +212,7 @@ def station_name_to_id(data: dict, sta: str,
     return output
 
 
-def station_short_id_to_id(data: dict, short_id: int) -> str:
+def station_short_id_to_id(data: dict, short_id: int) -> str | None:
     '''
     将车站短ID转换为车站ID
     
@@ -224,13 +224,13 @@ def station_short_id_to_id(data: dict, short_id: int) -> str:
         车站ID，如果未找到则返回None
     '''
     # 将短ID转换为十六进制字符串（去除'0x'前缀）
-    short_id = hex(short_id)[2:]
+    short_id_str = hex(short_id)[2:]
     stations = data['stations']  # 获取所有车站
     output = None  # 输出结果
     
     # 遍历所有车站，查找匹配的短ID
     for station_id, station_dict in stations.items():
-        if short_id == station_dict['station']:
+        if short_id_str == station_dict['station']:
             output = station_id
             break
 
@@ -313,7 +313,7 @@ def get_timetable(data, dep_data, station_name, route_name, use_second=False):
 
 
 def get_train(data, station, train_id: int,
-              station_tt: dict[str, dict[str, tuple]],
+              station_tt: dict[str, dict[int, tuple]],
               train_tt: dict[str, list[tuple]]):
     '''
     获取指定列车的详细信息
@@ -402,8 +402,8 @@ def get_train(data, station, train_id: int,
     return route_name, output, msg
 
 
-def route_random_train(data_v3, data, route, trains: dict[str, list],
-                       departure_time: int = None):
+def route_random_train(data_v3, data, route, trains: dict[str, list[list[int]]],
+                       departure_time: int | None = None):
     '''
     获取指定线路的随机列车信息
     
@@ -462,11 +462,10 @@ def route_random_train(data_v3, data, route, trains: dict[str, list],
 
     # 如果未找到符合条件的列车，随机选择一个
     if train == [-1]:
-        route = [0, 0]
         tries = 1000
         while len(route[1]) == 0 or len(train) == 0:
             route = random.choice(all_trains)
-            train = random.choice(route)
+            train = random.choice(route[1])
             route_data = data['routes'][route[0]]
             tries -= 1
             if tries == 0:
@@ -527,7 +526,7 @@ def route_random_train(data_v3, data, route, trains: dict[str, list],
     return route_name, output, msg
 
 
-def random_train(data, trains: dict[str, list], departure_time: int = None):
+def random_train(data, trains: dict[str, list[list[int]]], departure_time: int | None = None):
     '''
     随机获取一辆列车的信息
     
@@ -633,7 +632,7 @@ def random_train(data, trains: dict[str, list], departure_time: int = None):
 
 
 def get_text_timetable(data, station, departure_time: int,
-                       station_tt: dict[str, dict[str, tuple]]):
+                       station_tt: dict[str, dict[int, tuple]]):
     '''
     获取指定车站的文本格式时刻表
     
@@ -711,7 +710,7 @@ def get_text_timetable(data, station, departure_time: int,
 
 
 def get_sta_timetable(data_v3, data, station, routes, template_file,
-                      station_tt: dict[str, dict[str, tuple]]):
+                      station_tt: dict[str, dict[int, tuple]]):
     '''
     获取指定车站和线路的HTML格式时刻表
     
@@ -895,8 +894,6 @@ def get_sta_timetable(data_v3, data, station, routes, template_file,
             last_hour = hour
             template += f'''...{hour}...'''
 
-        dest, color, level, ...
-
 
 def get_sta_directions(data, station, template_file):
     '''
@@ -935,7 +932,7 @@ def get_sta_directions(data, station, template_file):
 
         return min(dists), dists.index(min(dists))
 
-    def find_connected_components(graph: dict[str]):
+    def find_connected_components(graph: dict[str, list[str]]):
         '''
         查找图中的连通组件
         
@@ -1218,7 +1215,7 @@ def get_sta_directions(data, station, template_file):
 
 def main_route_random_train(LOCAL_FILE_PATH, LOCAL_FILE_PATH_V3,
                             DATABASE_PATH, route_name,
-                            departure_time=None) -> tuple[str, tuple]:
+                            departure_time: int | None = None) -> tuple[str, tuple] | None:
     '''
     主函数：获取指定线路的随机列车信息
     
@@ -1254,7 +1251,7 @@ def main_route_random_train(LOCAL_FILE_PATH, LOCAL_FILE_PATH_V3,
 
 
 def main_random_train(LOCAL_FILE_PATH, DATABASE_PATH,
-                      departure_time=None) -> tuple[str, tuple]:
+                      departure_time: int | None = None) -> tuple[str, tuple] | None:
     '''
     主函数：随机获取一辆列车的信息
     
@@ -1285,7 +1282,7 @@ def main_random_train(LOCAL_FILE_PATH, DATABASE_PATH,
 
 
 def main_train(LOCAL_FILE_PATH, DATABASE_PATH_1, DATABASE_PATH_2,
-               station_name, train_id) -> tuple[str, tuple]:
+               station_name, train_id) -> tuple[str, tuple] | None | bool:
     '''
     主函数：获取指定列车的详细信息
     
@@ -1321,7 +1318,7 @@ def main_train(LOCAL_FILE_PATH, DATABASE_PATH_1, DATABASE_PATH_2,
 
 
 def main_text_timetable(LOCAL_FILE_PATH, DATABASE_PATH,
-                        departure_time, station_name) -> str:
+                        departure_time, station_name) -> str | None:
     '''
     主函数：获取指定车站的文本格式时刻表
     
@@ -1348,7 +1345,7 @@ def main_text_timetable(LOCAL_FILE_PATH, DATABASE_PATH,
 
 
 def main_sta_timetable(LOCAL_FILE_PATH, LOCAL_FILE_PATH_2,
-                       DATABASE_PATH, station_name, route_names) -> str:
+                       DATABASE_PATH, station_name, route_names) -> str | None | bool:
     '''
     主函数：获取指定车站和线路的HTML格式时刻表
     
@@ -1418,9 +1415,9 @@ def gen_departure_data(data, filename1, filename2, DEP_PATH, IGNORED_LINES):
     with open(DEP_PATH, 'r', encoding='utf-8') as f:
         dep_data: dict[str, list[int]] = json.load(f)
 
-    station_route_dep: dict[str, dict[str, list[int]]] = {}  # 车站线路发车数据
-    all_route_dep: dict[str, dict[str, list[int]]] = {}  # 所有线路发车数据
-    trains: dict[str, list] = {}  # 列车数据
+    station_route_dep: dict[str, dict[str, list[tuple[str, int, tuple[int, int]]]]] = {}  # 车站线路发车数据
+    all_route_dep: dict[str, dict[int, tuple[str, int, int]]] = {}  # 所有线路发车数据
+    trains: dict[str, list[list[int]]] = {}  # 列车数据
     station_train_id = {}  # 车站列车ID计数器
     
     # 遍历每条线路的发车数据
